@@ -21,7 +21,7 @@ var after = lab.after;
 
 var server;
 
-describe('GET /properties', function(){
+describe('GET /properties/{propertyId}', function(){
   before(function(done){
     Server.init(function(err, srvr){
       if(err){ throw err; }
@@ -44,21 +44,31 @@ describe('GET /properties', function(){
   });
 
   it('should return a property', function(done){
-    server.inject({method: 'GET', url: '/properties/{propertyId}', credentials: {_id: 'b00000000000000000000001', managerId: 'a00000000000000000000001'}}, function(response){
-      expect(response.result).to.ok;
+    server.inject({method: 'GET', url: '/properties/b00000000000000000000001', credentials: {_id: 'a00000000000000000000001'}}, function(response){
+      expect(response.statusCode).to.equal(200);
+      expect(response.result.name).to.equal('Oak Ridge');
       done();
     });
   });
 
-  it('should return falsy', function(done){
-    server.inject({method: 'GET', url: '/properties/{propertyId}', credentials: {_id: 'b00000000000000000000011'}}, function(response){
-      expect(response.result.property.value).to.not.be.ok;
+  it('should NOT return a property - wrong owner', function(done){
+    server.inject({method: 'GET', url: '/properties/b00000000000000000000001', credentials: {_id: 'a00000000000000000000002'}}, function(response){
+      expect(response.statusCode).to.equal(200);
+      expect(response.result).to.be.null;
       done();
     });
   });
-  it('should return falsy', function(done){
-    var stub = Sinon.stub(Property, 'find').yields(new Error());
-    server.inject({method: 'GET', url: '/properties/{propertyId}', credentials: {_id: 'b00000000000000000000001', managerId: 'a00000000000000000000009'}}, function(response){
+
+  it('should NOT return a property - bad propertyId', function(done){
+    server.inject({method: 'GET', url: '/properties/wrong', credentials: {_id: 'a00000000000000000000001'}}, function(response){
+      expect(response.statusCode).to.equal(400);
+      done();
+    });
+  });
+
+  it('should NOT return a property - db error', function(done){
+    var stub = Sinon.stub(Property, 'findOne').yields(new Error());
+    server.inject({method: 'GET', url: '/properties/b00000000000000000000001', credentials: {_id: 'a00000000000000000000001'}}, function(response){
       expect(response.statusCode).to.equal(400);
       stub.restore();
       done();
